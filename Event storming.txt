@@ -1,0 +1,122 @@
+--- Task tracker ---
+
+Авторизация в таск-трекере должна выполняться через общий сервис авторизации UberPopug Inc
+Actor — Account
+Command — Login
+Data — ??? + "Task tracker"
+Event — Account.LoggedIn
+
+Новые таски может создавать кто угодно (администратор, начальник, разработчик, менеджер и любая другая роль). У задачи должны быть описание, статус (выполнена или нет) и попуг, на которого заассайнена задача.
+Actor - Account
+Command - Register task
+Data - Desc
+Event - Task.Registered
+
+Actor - Task.Registered
+Command - Assign task
+Data - task id + account id
+Event - Task.Assigned
+
+Менеджеры или администраторы должны иметь кнопку «заассайнить задачи», которая возьмёт все открытые задачи и рандомно заассайнит каждую на любого из сотрудников (кроме менеджера и администратора)
+Actor - Account with role manager or admin
+Command - Assign tasks
+Data - N/A
+Event - Tasks.Assigned
+
+Каждый сотрудник должен иметь возможность видеть в отдельном месте список заассайненных на него задач + отметить задачу выполненной.
+Actor - Account
+Command - Complete task
+Data - task id + account public id
+Event - Task.Completed
+
+Query - Assigned tasks
+Actor - Account
+Data - account id
+
+--- Accounting ---
+
+Аккаунтинг должен быть в отдельном дашборде и доступным только для администраторов и бухгалтеров.
+Авторизация в дешборде аккаунтинга должна выполняться через общий сервис аутентификации UberPopug Inc.
+Actor — Account
+Command — Login
+Data — ??? + "Accounting"
+Event — Account.LoggedIn
+
+у обычных попугов доступ к аккаунтингу тоже должен быть. Но только к информации о собственных счетах (аудит лог + текущий баланс)
+Query - View audit log + balance
+Actor - Account
+Data - account id
+
+У админов и бухгалтеров должен быть доступ к общей статистике по деньгами заработанным (количество заработанных топ-менеджментом за сегодня денег + статистика по дням)
+Query - View top-management balance
+Actor - Account with role admin or accountant
+Data - ???
+
+Query - View day-by-day balance statistics
+Actor - Account with role admin or accountant
+Data - ???
+
+У каждого из сотрудников должен быть свой счёт, который показывает, сколько за сегодня он получил денег. У счёта должен быть аудитлог того, за что были списаны или начислены деньги, с подробным описанием каждой из задач.
+Actor - Task.Assigned, Task.Completed
+Command - Create audit record
+Data - account id + task id + desc status + date
+Event - AuditRecord.Created
+
+В конце дня необходимо:
+a) считать сколько денег сотрудник получил за рабочий день
+Actor - Scheduled event (end of day)
+Command - Compute account balance
+Data - account id
+Event - Balance.Computed
+
+b) отправлять на почту сумму выплаты.
+Actor - Balance.Computed
+Command - Send balance status email
+Data - account id + balance
+Event - Balance.Emailed
+
+После выплаты баланса (в конце дня) он должен обнуляться, и в аудитлоге всех операций аккаунтинга должно быть отображено, что была выплачена сумма.
+Actor - Balance.Computed
+Command - Pay out
+Data - account id + balance
+Event - Balance.PayedOut
+
+Actor - Balance.PayedOut
+Command - Create audit record
+Data - account id + balance
+Event - AuditRecord.PayoutCreated
+
+--- Analytics ---
+
+Аналитика — это отдельный дашборд, доступный только админам.
+Actor — Account with role admin
+Command — Login
+Data — ??? + "Analytics"
+Event — Account.LoggedIn
+
+Нужно указывать, сколько заработал топ-менеджмент за сегодня и сколько попугов ушло в минус.
+Query - View today top-management balance
+Actor - Account with role admin
+Data -
+
+Query - View number of accounts with negative balance for today
+Actor - Account with role admin
+Data -
+
+Нужно показывать самую дорогую задачу за день, неделю или месяц.
+a) самой дорогой задачей является задача с наивысшей ценой из списка всех закрытых задач за определенный период времени
+Query - View highest price task for a given period
+Actor - Account with role admin
+Data - Period in question (day, week, month)
+
+****** Under question *******
+
+Actor - Balance.PayedOut
+Command - Calculate statistics for today, week, month, ...
+Data - ???
+Event - Statistics.UpdatedPermanently
+
+Actor - AuditRecord.Created
+Command - Calculate trailing statistics for today
+Data - ???
+Event - Statistics.Updated
